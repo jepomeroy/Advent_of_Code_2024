@@ -25,6 +25,7 @@ func main() {
 	lines := strings.Split(string(data), "\n")
 
 	left, right := []int{}, []int{}
+	hash := make(map[int]int)
 
 	for _, line := range lines {
 		nums := strings.Fields(line)
@@ -37,6 +38,7 @@ func main() {
 			r, err := strconv.Atoi(nums[1])
 			check(err, "Error converting string to int")
 			right = append(right, r)
+			hash[r]++
 		}
 	}
 
@@ -44,7 +46,7 @@ func main() {
 	slices.Sort(right)
 
 	// part1(left, right)
-	part2(left, right)
+	part2(left, hash)
 }
 
 func part1(left, right []int) {
@@ -59,19 +61,11 @@ func part1(left, right []int) {
 	fmt.Println(value)
 }
 
-func part2(left, right []int) {
+func part2(left []int, hash map[int]int) {
 	value := 0
 
-	for i := 0; i < len(left); i++ {
-		count := 0
-
-		for j := 0; j < len(right); j++ {
-			if left[i] == right[j] {
-				count++
-			}
-		}
-
-		value += left[i] * count
+	for _, v := range left {
+		value += v * hash[v]
 	}
 
 	fmt.Println(value)
