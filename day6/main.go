@@ -13,11 +13,9 @@ type guard struct {
 }
 
 func findGuard(data string, width int) (guard, error) {
-	for i, b := range "^>v<" {
-		idx := strings.Index(data, string(b))
-		if idx != -1 {
-			return guard{row: idx / width, col: idx % width, direction: i}, nil
-		}
+	idx := strings.Index(data, "^")
+	if idx != -1 {
+		return guard{row: idx / width, col: idx % width, direction: 0}, nil
 	}
 	return guard{}, fmt.Errorf("No guard found")
 }
@@ -90,6 +88,78 @@ func trackGuard(data string, guard guard, height int, width int) int {
 	}
 }
 
+func detectLoop(visited map[int][]int, guard guard, width int) bool {
+	if visited[guard.row*width+guard.col] == nil {
+		return false
+	}
+
+	for _, dir := range visited[guard.row*width+guard.col] {
+		if dir == guard.direction {
+			return true
+		}
+	}
+
+	return false
+}
+
+func trapGuard(data string, guard guard, trap int, height int, width int) error {
+	// mark each spot the guard has turned at, once we get a repeat, they're in a loop
+	visited := map[int][]int{}
+
+	for {
+		if willExit(guard, height, width) {
+			return fmt.Errorf("Guard is not in a loop")
+		}
+
+		switch guard.direction {
+		case 0:
+			if data[(guard.row-1)*width+guard.col] == '#' || (guard.row-1)*width+guard.col == trap {
+				if detectLoop(visited, guard, width) {
+					return nil
+				}
+
+				visited[guard.row*width+guard.col] = append(visited[guard.row*width+guard.col], guard.direction)
+				guard.direction = 1
+			} else {
+				guard.row--
+			}
+		case 1:
+			if data[guard.row*width+guard.col+1] == '#' || guard.row*width+guard.col+1 == trap {
+				if detectLoop(visited, guard, width) {
+					return nil
+				}
+
+				visited[guard.row*width+guard.col] = append(visited[guard.row*width+guard.col], guard.direction)
+				guard.direction = 2
+			} else {
+				guard.col++
+			}
+		case 2:
+			if data[(guard.row+1)*width+guard.col] == '#' || (guard.row+1)*width+guard.col == trap {
+				if detectLoop(visited, guard, width) {
+					return nil
+				}
+
+				visited[guard.row*width+guard.col] = append(visited[guard.row*width+guard.col], guard.direction)
+				guard.direction = 3
+			} else {
+				guard.row++
+			}
+		case 3:
+			if data[guard.row*width+guard.col-1] == '#' || guard.row*width+guard.col-1 == trap {
+				if detectLoop(visited, guard, width) {
+					return nil
+				}
+
+				visited[guard.row*width+guard.col] = append(visited[guard.row*width+guard.col], guard.direction)
+				guard.direction = 0
+			} else {
+				guard.col--
+			}
+		}
+	}
+}
+
 func main() {
 	// First element in os.Args is always the program name,
 	// So we need at least 2 arguments to have a file name argument.
@@ -112,8 +182,8 @@ func main() {
 		}
 	}
 
-	part1(string(buffer), height, width)
-	// part2(updates, rules)
+	// part1(string(buffer), height, width)
+	part2(string(buffer), height, width)
 }
 
 func part1(data string, height int, width int) {
@@ -127,9 +197,22 @@ func part1(data string, height int, width int) {
 	fmt.Println(value)
 }
 
-func part2(data string) {
+func part2(data string, height int, width int) {
 	value := 0
+	guard, err := findGuard(data, width)
 
+	check(err, "No guard found")
+
+	for trap, b := range data {
+		if b != '#' && b != '^' {
+			fmt.Println("Checking trap at", trap)
+			err := trapGuard(data, guard, trap, height, width)
+
+			if err == nil {
+				value++
+			}
+		}
+	}
 	fmt.Println(value)
 }
 
