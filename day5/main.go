@@ -4,47 +4,42 @@ import (
 	"fmt"
 	"math"
 	"os"
+	"slices"
+	"sort"
 	"strconv"
 	"strings"
 )
 
-type rule struct {
-	first  int
-	second int
-}
+type rulesType map[int][]int
 
 type update struct {
 	pageNums []int
 }
 
-func (u *update) fixUpdate(rules []rule) {
-	for i := 1; i < len(u.pageNums); i++ {
-		found := false
+func (u *update) fixUpdate(rules rulesType) {
+	sort.Slice(u.pageNums, func(i, j int) bool {
+		left := u.pageNums[i]
+		right := u.pageNums[j]
+		rule, found := rules[left]
 
-		for _, rule := range rules {
-			if u.pageNums[i-1] == rule.first && u.pageNums[i] == rule.second {
-				found = true
-				break
-			}
+		if found && slices.Contains(rule, right) {
+			return true
 		}
 
-		if !found {
-			tmp := u.pageNums[i-1]
-			u.pageNums[i-1] = u.pageNums[i]
-			u.pageNums[i] = tmp
-			i = 1
-		}
-
-		fmt.Printf("Latest update: %v\n", u)
-	}
+		return false
+	})
 }
 
-func (u update) validate(rules []rule) bool {
+func (u update) validate(rules rulesType) bool {
 	for i := 0; i < len(u.pageNums)-1; i++ {
-		for _, rule := range rules {
-			if u.pageNums[i] == rule.second && u.pageNums[i+1] == rule.first {
-				return false
-			}
+		rules, found := rules[u.pageNums[i]]
+
+		if !found {
+			return false
+		}
+
+		if !slices.Contains(rules, u.pageNums[i+1]) {
+			return false
 		}
 	}
 
@@ -71,8 +66,8 @@ func main() {
 	}
 
 	foundBreak := false
-	rules := []rule{}
 	updates := []update{}
+	rules := rulesType{}
 
 	for _, line := range strings.Split(string(data), "\n") {
 		if len(line) == 0 {
@@ -88,8 +83,7 @@ func main() {
 			second, err := strconv.Atoi(parts[1])
 			check(err, "Error converting second part to int")
 
-			newRule := rule{first: first, second: second}
-			rules = append(rules, newRule)
+			rules[first] = append(rules[first], second)
 		} else {
 			newUpdate := update{pageNums: []int{}}
 			for _, num := range strings.Split(line, ",") {
@@ -106,7 +100,7 @@ func main() {
 	part2(updates, rules)
 }
 
-func part1(updates []update, rules []rule) {
+func part1(updates []update, rules rulesType) {
 	value := 0
 	for _, update := range updates {
 		if update.validate(rules) {
@@ -117,7 +111,7 @@ func part1(updates []update, rules []rule) {
 	fmt.Println(value)
 }
 
-func part2(updates []update, rules []rule) {
+func part2(updates []update, rules rulesType) {
 	value := 0
 
 	for _, update := range updates {
