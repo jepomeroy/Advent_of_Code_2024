@@ -37,21 +37,39 @@ func (a antenna) isAntiNodeValid(width int, height int) bool {
 	return true
 }
 
+func (a antenna) findNextAntiNode(rowDiff, colDiff, width, height int, first bool) []antenna {
+	antiNodes := []antenna{}
+	nextNode := a.makeAntiNode(rowDiff, colDiff, first)
+
+	if nextNode.isAntiNodeValid(width, height) {
+		antiNodes = append(antiNodes, nextNode)
+		antiNodes = append(antiNodes, nextNode.findNextAntiNode(rowDiff, colDiff, width, height, first)...)
+	} else {
+		return antiNodes
+	}
+
+	return antiNodes
+}
+
 func (a antenna) findAntiNodes(b antenna, width int, height int) []antenna {
 	validAntiNodes := []antenna{}
 	colDiff := a.col - b.col
 	rowDiff := a.row - b.row
 
+	validAntiNodes = append(validAntiNodes, a)
+
 	antiNode1 := a.makeAntiNode(rowDiff, colDiff, true)
 	if antiNode1.isAntiNodeValid(width, height) {
 		fmt.Printf("antinode1: %v\n", antiNode1)
 		validAntiNodes = append(validAntiNodes, antiNode1)
+		validAntiNodes = append(validAntiNodes, antiNode1.findNextAntiNode(rowDiff, colDiff, width, height, true)...)
 	}
 
 	antiNode2 := b.makeAntiNode(rowDiff, colDiff, false)
 	if antiNode2.isAntiNodeValid(width, height) {
 		fmt.Printf("antinode2: %v\n", antiNode2)
 		validAntiNodes = append(validAntiNodes, antiNode2)
+		validAntiNodes = append(validAntiNodes, antiNode2.findNextAntiNode(rowDiff, colDiff, width, height, false)...)
 	}
 
 	return validAntiNodes
@@ -65,6 +83,14 @@ type antennaData struct {
 
 func findNodes(antData antennaData) int {
 	antiNodes := []antenna{}
+
+	// Add all the antennas to the antiNodes list
+	for _, value := range antData.antennaLocations {
+		for _, position := range value {
+			antenna := caculateRowCol(position, antData.width)
+			antiNodes = append(antiNodes, antenna)
+		}
+	}
 
 	for _, value := range antData.antennaLocations {
 		for i := 0; i < len(value)-1; i++ {
