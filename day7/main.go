@@ -8,6 +8,32 @@ import (
 	"strings"
 )
 
+type Operation int
+
+const (
+	Add Operation = iota
+	Multiply
+	Combine
+)
+
+func generateCombinations(n int) [][]Operation {
+	if n == 1 {
+		return [][]Operation{{}}
+	}
+
+	subCombinations := generateCombinations(n - 1)
+	combinations := make([][]Operation, 0, len(subCombinations)*3)
+
+	for _, subCombination := range subCombinations {
+		for _, op := range []Operation{Add, Multiply, Combine} {
+			newCombination := append([]Operation{op}, subCombination...)
+			combinations = append(combinations, newCombination)
+		}
+	}
+
+	return combinations
+}
+
 type equation struct {
 	answer int
 	values []int
@@ -17,9 +43,14 @@ func (eq equation) solvable() int {
 	fmt.Println()
 	fmt.Println("answer", eq.answer)
 	fmt.Println("values", eq.values)
+	fmt.Println()
 
-	for opset := range int(math.Pow(2, float64(len(eq.values)-1))) {
-		if eq.solve(opset) == eq.answer {
+	opIndex := len(eq.values)
+
+	operations := generateCombinations(opIndex)
+
+	for opset := range int(math.Pow(3, float64(opIndex-1))) {
+		if eq.solve(opset, operations[opset]) == eq.answer {
 			return eq.answer
 		}
 	}
@@ -27,23 +58,28 @@ func (eq equation) solvable() int {
 	return 0
 }
 
-func (eq equation) solve(opset int) int {
+func (eq equation) solve(opset int, operation []Operation) int {
 	accumulator := eq.values[0]
 	str := ""
+	fmt.Println("opset", opset)
 
 	for i := 1; i < len(eq.values); i++ {
-		if opset&(1<<(i-1)) != 0 {
-			// multiplication
-			str += "*"
-			accumulator *= eq.values[i]
-		} else {
-			// addition
+		switch operation[i-1] {
+		case 0:
 			str += "+"
 			accumulator += eq.values[i]
+		case 1:
+			str += "*"
+			accumulator *= eq.values[i]
+		case 2:
+			str += "|"
+			tmp := strconv.Itoa(accumulator) + strconv.Itoa(eq.values[i])
+			accumulator, _ = strconv.Atoi(tmp)
 		}
 	}
 
-	fmt.Printf("%s = %d\n", str, accumulator)
+	fmt.Printf("[op: %d] %s => %d\n\n", opset, str, accumulator)
+
 	return accumulator
 }
 
@@ -80,8 +116,8 @@ func main() {
 		}
 	}
 
-	part1(equations)
-	// part2(equations)
+	// part1(equations)
+	part2(equations)
 }
 
 func part1(equations []equation) {
@@ -96,6 +132,10 @@ func part1(equations []equation) {
 
 func part2(equations []equation) {
 	value := 0
+
+	for _, eq := range equations {
+		value += eq.solvable()
+	}
 
 	fmt.Println(value)
 }
